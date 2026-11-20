@@ -9,6 +9,7 @@ import LocationSection from "@/components/common/LocationSection";
 import Pillars from "@/components/story/Pillars";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/story" },
     title: "Our Story",
     description:
         "Learn how VietBites started in Toronto with roots in Hải Phòng. Read about our founders, family recipes, and the story behind our Vietnamese bánh mì and desserts.",

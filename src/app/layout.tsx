@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+import { JsonLd } from "@/components/seo/json-ld";
+import { indexingAllowed, site, siteUrl } from "@/lib/site";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -22,20 +23,18 @@ const sourceSans = Source_Sans_3({
   display: "swap",
 });
 
-const defaultUrl = process.env.NEXT_PUBLIC_BASE_URL
-  ? `https://${process.env.NEXT_PUBLIC_BASE_URL}`
-  : "http://localhost:3000";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "VietBites Toronto | Vietnamese Desserts And Banh Mi",
     template: "%s | VietBites Toronto",
   },
   description:
-    "VietBites is a Vietnamese restuarant/cafe in Downtown Toronto serving bánh mì, chè sweet soups, drinks, and desserts inspired by Vietnamese culture from Hải Phòng.",
+    site.description,
   openGraph: {
-    siteName: "VietBites",
+    siteName: site.name,
+    locale: site.locale,
     type: "website",
     images: ["/opengraph-image.png"],
   },
@@ -43,10 +42,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     images: ["/twitter-image.png"],
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: indexingAllowed()
+    ? { index: true, follow: true }
+    : { index: false, follow: false },
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon" },
@@ -54,6 +52,28 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-icon.png", sizes: "192x192" }],
   },
+};
+
+/* Business details for search engines (schema.org Restaurant). */
+const restaurantJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  name: site.name,
+  url: site.url,
+  image: `${site.url}/opengraph-image.png`,
+  description: site.description,
+  telephone: site.phone,
+  hasMap: site.googleMapsUrl,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: site.address.street,
+    addressLocality: site.address.city,
+    addressRegion: site.address.region,
+    postalCode: site.address.postalCode,
+    addressCountry: site.address.country,
+  },
+  servesCuisine: ["Vietnamese"],
+  priceRange: "$",
 };
 
 export default function RootLayout({
@@ -71,29 +91,7 @@ export default function RootLayout({
             <main>{children}</main>
             <Footer />
 
-            <Script id="ld-json-localbusiness" type="application/ld+json">
-            {JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Restaurant",
-                name: "VietBites",
-                image: `${defaultUrl}/opengraph-image.png`,
-                url: defaultUrl,
-                telephone:
-                    process.env.NEXT_PUBLIC_VIETBITES_PHONE || "(437) 607-8296",
-                address: {
-                    "@type": "PostalAddress",
-                    streetAddress:
-                        process.env.NEXT_PUBLIC_VIETBITES_LOCATION ||
-                        "246 Gerrard St E, Toronto, ON M5A 2G2",
-                    addressLocality: "Toronto",
-                    addressRegion: "ON",
-                    postalCode: "M5A",
-                    addressCountry: "CA",
-                },
-                servesCuisine: ["Vietnamese"],
-                priceRange: "$",
-            })}
-            </Script>
+            <JsonLd data={restaurantJsonLd} />
             {analyticsEnabled() && <SiteAnalytics />}
         </body>
     </html>

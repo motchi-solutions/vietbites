@@ -4,6 +4,7 @@ import Image from "next/image";
 import Platforms from "./common/Platforms";
 import type { Platform } from "@/lib/notion/platforms";
 import { getPlatforms } from "@/lib/notion/platforms";
+import { site } from "@/lib/site";
 
 export default async function Footer() {
     const allPlatforms: Platform[] = await getPlatforms();
@@ -52,7 +53,7 @@ export default async function Footer() {
                         className="underline text-charcoal/90 hover:text-orange transition-colors ease-in-out duration-300"
                     >
                         <address className="not-italic text-center md:text-left">
-                            {process.env.NEXT_PUBLIC_VIETBITES_LOCATION}
+                            {site.address.full}
                         </address>
                     </a>
                     <p className="mt-2 text-charcoal/80 text-center md:text-left">

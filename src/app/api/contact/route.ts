@@ -305,15 +305,15 @@ export async function POST(req: Request) {
         }
 
         const apiKey = process.env.BREVO_API_KEY;
-        const fromEmail = process.env.BREVO_ADMIN_FROM_EMAIL;
-        const fromName = process.env.BREVO_ADMIN_FROM_NAME || "VietBites";
-        const confirmFromEmail = process.env.BREVO_CONFIRM_FROM_EMAIL;
+        const fromEmail = process.env.CONTACT_NOTIFICATION_FROM_EMAIL;
+        const fromName = process.env.CONTACT_NOTIFICATION_FROM_NAME || "VietBites";
+        const confirmFromEmail = process.env.CONTACT_FROM_EMAIL;
         const confirmFromName =
-            process.env.BREVO_CONFIRM_FROM_NAME ||
+            process.env.CONTACT_FROM_NAME ||
             "No Reply | VietBites Toronto";
-        const toEmail = process.env.BREVO_TO_EMAIL;
+        const toEmail = process.env.CONTACT_TO_EMAIL;
         const techCcEmail =
-            process.env.BREVO_TECH_CC_EMAIL || "admin@motchi.ca";
+            process.env.CONTACT_CC_EMAIL || "admin@motchi.ca";
         const techCcName = "VietBites Tech Support";
 
         if (!apiKey || !fromEmail || !toEmail || !confirmFromEmail) {

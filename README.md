@@ -26,13 +26,13 @@ This project requires environment variables to run correctly.
 
 Required variables include:
 
-- `BREVO_API_KEY`
-- `BREVO_ADMIN_FROM_EMAIL`
-- `BREVO_TO_EMAIL`
-- `BREVO_CONFIRM_FROM_EMAIL`
+- `NOTION_TOKEN` and the five `NOTION_*_DATABASE_ID` values
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Cloudflare Turnstile, public)
 - `TURNSTILE_SECRET_KEY` (Cloudflare Turnstile, server only)
-- The Notion database ID variables read in `src/lib/notion`
+- `BREVO_API_KEY`
+- `CONTACT_FROM_EMAIL`, `CONTACT_NOTIFICATION_FROM_EMAIL`, `CONTACT_TO_EMAIL`
+
+The site origin and business details (address, phone, map link) are set in `src/lib/site.ts`.
 
 Refer to `.env.example` for the full list.
 

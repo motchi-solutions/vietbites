@@ -11,6 +11,7 @@ import FeaturedMenu from "@/components/homepage/FeaturedMenu/FeaturedMenu";
 import LocationSection from "@/components/common/LocationSection";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/" },
     title: "VietBites | Vietnamese Cuisine in Toronto",
     description:
         "Visit VietBites in Downtown Toronto for Vietnamese bánh mì, chè sweet soups, drinks, and desserts inspired by Hải Phòng. See our hours, location, and featured menu.",

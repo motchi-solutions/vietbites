@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { site } from "@/lib/site";
 
 export default function LocationSection() {
     return (
@@ -31,7 +32,7 @@ export default function LocationSection() {
                         </span>{" "}
                         is located at{" "}
                         <span className="font-semibold">
-                            {process.env.NEXT_PUBLIC_VIETBITES_LOCATION}
+                            {site.address.full}
                         </span>
                         , steps from downtown. Come by for bánh mì, desserts,
                         and a little taste of Vietnam!

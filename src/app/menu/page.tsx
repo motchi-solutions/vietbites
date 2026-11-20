@@ -1,6 +1,5 @@
 import "server-only";
 import type { Metadata } from "next";
-import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -18,8 +17,10 @@ import SectionHeader from "@/components/common/SectionHeader";
 import { getPlatforms } from "@/lib/notion/platforms";
 import type { Platform } from "@/lib/notion/platforms";
 import Platforms from "@/components/common/Platforms";
+import { JsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/menu" },
     title: "Menu",
     description:
         "Browse the VietBites menu with Vietnamese bánh mì, house specials, chè sweet soup, specialty drinks, and toppings in Downtown Toronto.",
@@ -74,8 +75,8 @@ export default async function MenuPage() {
     return (
         <main className="max-w-7xl mx-auto rounded-lg section-cream shadow-sm space-y-10">
             {/* Menu JSON-LD schema */}
-            <Script id="ld-json-menu" type="application/ld+json">
-                {JSON.stringify({
+            <JsonLd
+                data={{
                     "@context": "https://schema.org",
                     "@type": "Menu",
                     name: "VietBites Menu",
@@ -128,8 +129,8 @@ export default async function MenuPage() {
                             })),
                         },
                     ],
-                })}
-            </Script>
+                }}
+            />
 
             {/* Mobile section navigator */}
             <MenuMobileNav
