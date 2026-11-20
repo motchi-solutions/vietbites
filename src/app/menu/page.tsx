@@ -18,6 +18,7 @@ import { getPlatforms } from "@/lib/notion/platforms";
 import type { Platform } from "@/lib/notion/platforms";
 import Platforms from "@/components/common/Platforms";
 import { JsonLd } from "@/components/seo/json-ld";
+import { openGraphDefaults, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
     alternates: { canonical: "/menu" },
@@ -25,11 +26,14 @@ export const metadata: Metadata = {
     description:
         "Browse the VietBites menu with Vietnamese bánh mì, house specials, chè sweet soup, specialty drinks, and toppings in Downtown Toronto.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/menu",
         title: "VietBites Menu In Downtown Toronto",
         description:
             "See the full VietBites menu including Vietnamese bánh mì, house specials, chè sweet soup, drinks, and toppings available in Downtown Toronto.",
     },
     twitter: {
+        ...twitterDefaults,
         title: "VietBites Menu In Downtown Toronto",
         description:
             "Explore the VietBites menu with Vietnamese bánh mì, chè sweet soup, drinks, and toppings served in Downtown Toronto.",

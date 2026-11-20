@@ -5,7 +5,7 @@ import { getHours } from "@/lib/notion/hours";
 import HoursTable from "@/components/visit/location/HoursTable";
 import ContactForm from "@/components/visit/contact/contactForm/ContactForm";
 import FrameSection from "@/components/common/FrameSection";
-import { site } from "@/lib/site";
+import { openGraphDefaults, site, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
     alternates: { canonical: "/visit" },
@@ -13,11 +13,14 @@ export const metadata: Metadata = {
     description:
         "Hours, location, and contact - check VietBites hours and get in touch.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/visit",
         title: "Visit Us | VietBites Toronto",
         description:
             "Hours, location, and contact - check VietBites hours and get in touch.",
     },
     twitter: {
+        ...twitterDefaults,
         title: "Visit Us | VietBites Toronto",
         description:
             "Hours, location, and contact - check VietBites hours and get in touch.",

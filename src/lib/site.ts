@@ -19,6 +19,20 @@ export const site = {
     googleMapsUrl: "https://www.google.com/maps/place/Vietbites/@43.6620262,-79.3720876,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4cbc0f751d687:0x881dfbd1330e66d6!8m2!3d43.6620262!4d-79.3695127!16s%2Fg%2F11x6gcgm8t?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D",
 } as const;
 
+/** Shared Open Graph and X fields. A page that sets openGraph or twitter
+    replaces the layout's objects (Next.js does not merge them), so every page
+    spreads these to keep the share image, card type and site name. */
+export const openGraphDefaults = {
+    siteName: site.name,
+    locale: site.locale,
+    type: "website" as const,
+    images: ["/opengraph-image.png"],
+};
+export const twitterDefaults = {
+    card: "summary_large_image" as const,
+    images: ["/twitter-image.png"],
+};
+
 /* Site URLs and indexing. Shared Motchi standard (AGENTS.md, "Website standard").
 
    The production origin is set in site.url, so no environment variable is
