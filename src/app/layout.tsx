@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import SectionReveal from "@/components/common/SectionReveal";
 
 import { Be_Vietnam_Pro, Source_Sans_3 } from "next/font/google";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
+import { analyticsEnabled } from "@/lib/analytics";
 
 const beVietnam = Be_Vietnam_Pro({
   subsets: ["latin"],
@@ -92,6 +94,7 @@ export default function RootLayout({
                 priceRange: "$",
             })}
             </Script>
+            {analyticsEnabled() && <SiteAnalytics />}
         </body>
     </html>
   );

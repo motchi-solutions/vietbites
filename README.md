@@ -12,6 +12,8 @@ This repository contains the public-facing website, including the menu, catering
 - **Styling:** Tailwind CSS
 - **CMS:** Notion (read-only content source)
 - **Email:** Brevo (transactional email API)
+- **Spam protection:** Cloudflare Turnstile on the contact form
+- **Analytics:** Vercel Web Analytics (production only, cookie-free)
 - **Hosting:** Vercel
 - **Language:** TypeScript
 
@@ -28,6 +30,9 @@ Required variables include:
 - `BREVO_ADMIN_FROM_EMAIL`
 - `BREVO_TO_EMAIL`
 - `BREVO_CONFIRM_FROM_EMAIL`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Cloudflare Turnstile, public)
+- `TURNSTILE_SECRET_KEY` (Cloudflare Turnstile, server only)
+- The Notion database ID variables read in `src/lib/notion`
 
 Refer to `.env.example` for the full list.
 

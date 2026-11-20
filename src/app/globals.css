@@ -357,7 +357,3 @@ hr:not(#hours ul hr):not(#reason-divider) {
     }
 }
 
-/* Google reCAPTCHA badge */
-.grecaptcha-badge { 
-    visibility: hidden !important; 
-}
