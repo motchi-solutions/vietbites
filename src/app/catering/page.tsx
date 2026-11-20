@@ -2,17 +2,22 @@ import "server-only";
 import type { Metadata } from "next";
 import CateringBlock from "@/components/catering/CateringBlock";
 import SectionHeader from "@/components/common/SectionHeader";
+import { openGraphDefaults, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/catering" },
     title: "Catering",
     description:
         "Work with VietBites Toronto on wholesale (B2B), catering, and collaborations. Submit an inquiry and we'll get back to you soon.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/catering",
         title: "Catering | VietBites Toronto",
         description:
             "Wholesale (B2B), catering, and collaborations with VietBites Toronto. Submit an inquiry and we'll get back to you soon.",
     },
     twitter: {
+        ...twitterDefaults,
         title: "Catering | VietBites Toronto",
         description:
             "Wholesale (B2B), catering, and collaborations with VietBites Toronto. Submit an inquiry and we'll get back to you soon.",

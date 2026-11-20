@@ -7,18 +7,23 @@ import { PhotoStrip } from "@/components/story/PhotoStrip";
 import Quote from "@/components/story/Quote";
 import LocationSection from "@/components/common/LocationSection";
 import Pillars from "@/components/story/Pillars";
+import { openGraphDefaults, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/story" },
     title: "Our Story",
     description:
         "Learn how VietBites started in Toronto with roots in Hải Phòng. Read about our founders, family recipes, and the story behind our Vietnamese bánh mì and desserts.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/story",
         title: "Our Story At VietBites Toronto",
         description:
             "Discover the VietBites story from Hải Phòng to Toronto. Learn about our Vietnamese bakery, family recipes, and the inspiration behind our bánh mì and desserts.",
         type: "article",
     },
     twitter: {
+        ...twitterDefaults,
         title: "Our Story At VietBites Toronto",
         description:
             "Read how VietBites grew from Hải Phòng flavors to a Vietnamese bakery in Downtown Toronto serving bánh mì, chè, drinks, and desserts.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 
@@ -11,6 +11,7 @@ import SelectBox from "@/components/visit/contact/ui/SelectBox";
 import CountedInput from "@/components/visit/contact/ui/CountedInput";
 import ContactFormHeader from "./ContactFormHeader";
 import ContactFormFooter from "./ContactFormFooter";
+import { useTurnstile } from "@/lib/use-turnstile";
 import {
     normalizeReason,
     prettyReason,
@@ -21,8 +22,6 @@ import {
     reasonHelp,
     SUBJECT_MAX,
 } from "../utils";
-
-type RecaptchaVersion = "v3" | "v2";
 
 type ContactPayload = {
     name: string;
@@ -41,28 +40,13 @@ type ApiErrorResponse = {
 
 type ApiSuccessResponse = { ok: true; id?: string };
 
-// Minimal typing for grecaptcha used here
-type Grecaptcha = {
-    ready: (cb: () => void) => void;
-    execute: (siteKey: string, opts?: { action?: string }) => Promise<string>;
-    render: (el: Element | null, opts: any) => number;
-    reset: (widgetId?: number) => void;
-};
-
-declare global {
-    interface Window {
-        grecaptcha?: Grecaptcha;
-    }
-}
-
 export default function ContactForm({
     initialReason = "",
 }: {
     initialReason?: string;
 }) {
-    const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
-    const RECAPTCHA_V2_SITE_KEY =
-        process.env.NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY || RECAPTCHA_SITE_KEY;
+    const { container: turnstileContainer, getToken: getTurnstileToken } =
+        useTurnstile(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -161,91 +145,6 @@ export default function ContactForm({
         }
     }, [searchParams, initialReason, allowedReasons, router, pathname]);
 
-    // Load reCAPTCHA v3 script if site key is provided
-    useEffect(() => {
-        if (!RECAPTCHA_SITE_KEY) return;
-        if (typeof window === "undefined") return;
-        const w = window as Window & { grecaptcha?: Grecaptcha };
-        if (w.grecaptcha) return; // already loaded
-
-        const s = document.createElement("script");
-        s.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-        s.async = true;
-        s.defer = true;
-        document.head.appendChild(s);
-
-        return () => {
-            // don't remove script on unmount; let it persist for other pages
-        };
-    }, [RECAPTCHA_SITE_KEY]);
-
-    // v2 fallback state and refs
-    const [showV2, setShowV2] = useState(false);
-    const v2ContainerRef = useRef<HTMLDivElement | null>(null);
-    const pendingPayloadRef = useRef<ContactPayload | null>(null);
-    const v2WidgetIdRef = useRef<number | null>(null);
-
-    // Load and render v2 widget when requested
-    useEffect(() => {
-        if (!showV2) return;
-        if (typeof window === "undefined") return;
-        const w = window as Window & { grecaptcha?: Grecaptcha };
-
-        // Load v2 script if needed
-        if (!w.grecaptcha || typeof w.grecaptcha.render !== "function") {
-            const s = document.createElement("script");
-            s.src = "https://www.google.com/recaptcha/api.js"; // v2 global
-            s.async = true;
-            s.defer = true;
-            document.head.appendChild(s);
-            s.onload = () => {
-                tryRenderV2();
-            };
-        } else {
-            tryRenderV2();
-        }
-
-        function tryRenderV2() {
-            try {
-                if (!v2ContainerRef.current) return;
-                // Render only once
-                if ((v2ContainerRef.current as any)._rendered) return;
-
-                const site = RECAPTCHA_V2_SITE_KEY;
-                if (!site) return;
-
-                const grecaptcha = window.grecaptcha;
-
-                if (!grecaptcha || typeof grecaptcha.render !== "function") {
-                    return;
-                }
-
-                v2WidgetIdRef.current = grecaptcha.render(
-                    v2ContainerRef.current,
-                    {
-                        sitekey: site,
-                        callback: (token: string) => {
-                            // when user completes v2, submit pending payload
-                            if (pendingPayloadRef.current) {
-                                submitPayload(
-                                    pendingPayloadRef.current,
-                                    token,
-                                    "v2",
-                                );
-                                pendingPayloadRef.current = null;
-                            }
-                        },
-                    },
-                );
-
-                (v2ContainerRef.current as any)._rendered = true;
-            } catch (err) {
-                console.warn("Failed to render reCAPTCHA v2", err);
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showV2, RECAPTCHA_V2_SITE_KEY]);
-
     const reasonLabel = useMemo(() => {
         const opt = reasonOptions.find((o) => o.value === normalizedReason);
         return opt?.label ?? (normalizedReason ? normalizedReason : "-");
@@ -276,8 +175,7 @@ export default function ContactForm({
 
     async function submitPayload(
         payload: ContactPayload,
-        recaptchaToken: string,
-        recaptchaVersion?: RecaptchaVersion,
+        turnstileToken: string,
     ) {
         setLoading(true);
         try {
@@ -288,8 +186,7 @@ export default function ContactForm({
                     ...payload,
                     company,
                     startedAt,
-                    recaptchaToken,
-                    recaptchaVersion,
+                    turnstileToken,
                 }),
             });
             const json = (await res.json()) as
@@ -301,51 +198,12 @@ export default function ContactForm({
                     throw new Error("Failed to send message.");
                 }
 
-                // If server flagged low v3 score or recaptcha failure, show v2
-                const shouldShowV2Fallback =
-                    recaptchaVersion !== "v2" &&
-                    (json.code === "RECAPTCHA_LOW_SCORE" ||
-                        json.code === "RECAPTCHA_FAIL" ||
-                        json.code === "RECAPTCHA_ACTION" ||
-                        json.code === "RECAPTCHA_MISSING");
-
-                if (shouldShowV2Fallback) {
-                    pendingPayloadRef.current = payload;
-                    setShowV2(true);
-                    setResult(null);
-                    return;
-                }
-
-                // Handle failed v2 attempts
-                if (
-                    recaptchaVersion === "v2" &&
-                    (json.code === "RECAPTCHA_FAIL" ||
-                        json.code === "RECAPTCHA_QUOTA_EXCEEDED" ||
-                        json.code === "RECAPTCHA_ERROR")
-                ) {
-                    setShowV2(false);
-                    pendingPayloadRef.current = null;
-
-                    try {
-                        const grecaptcha = window.grecaptcha;
-                        if (
-                            grecaptcha &&
-                            typeof grecaptcha.reset === "function"
-                        ) {
-                            if (v2WidgetIdRef.current != null) {
-                                grecaptcha.reset(v2WidgetIdRef.current);
-                            }
-                        }
-                    } catch {
-                        // non-fatal
-                    }
-
+                if (json.code === "CAPTCHA_FAIL") {
                     setResult({
                         type: "error",
                         message:
-                            "We could not verify your request right now. Please try again later. If the issue continues, please contact us by phone or email directly.",
+                            "We could not verify your request. Please try again. If the issue continues, please contact us by phone or email directly.",
                     });
-
                     return;
                 }
 
@@ -370,11 +228,8 @@ export default function ContactForm({
                     return;
                 }
 
-                // Handle reCAPTCHA quota or service issues
-                if (
-                    json.code === "RECAPTCHA_QUOTA_EXCEEDED" ||
-                    json.code === "RECAPTCHA_TEMPORARY_FAILURE"
-                ) {
+                // Spam check service issues
+                if (json.code === "CAPTCHA_UNAVAILABLE") {
                     setResult({
                         type: "error",
                         message:
@@ -413,20 +268,6 @@ export default function ContactForm({
             setDescription("");
             setCompany("");
 
-            // Hide and reset v2 widget if present
-            setShowV2(false);
-            pendingPayloadRef.current = null;
-            try {
-                const grecaptcha = window.grecaptcha;
-
-                if (grecaptcha && typeof grecaptcha.reset === "function") {
-                    if (v2WidgetIdRef.current != null) {
-                        grecaptcha.reset(v2WidgetIdRef.current);
-                    }
-                }
-            } catch (err) {
-                // non-fatal
-            }
         } catch (err: unknown) {
             const msg =
                 err instanceof Error && err.message
@@ -452,37 +293,19 @@ export default function ContactForm({
             meta: buildMeta(),
         };
 
-        // Try v3 first
-        let recaptchaToken = "";
+        let turnstileToken = "";
         try {
-            if (RECAPTCHA_SITE_KEY && typeof window !== "undefined") {
-                const grecaptcha = window.grecaptcha;
-
-                if (grecaptcha && typeof grecaptcha.execute === "function") {
-                    recaptchaToken = await new Promise<string>(
-                        (resolve, reject) => {
-                            grecaptcha.ready(() => {
-                                grecaptcha
-                                    .execute(RECAPTCHA_SITE_KEY, {
-                                        action: "contact_form",
-                                    })
-                                    .then((t: string) => resolve(t))
-                                    .catch(reject);
-                            });
-                        },
-                    );
-                }
-            }
-        } catch (err) {
-            console.warn("reCAPTCHA v3 execute failed", err);
+            turnstileToken = await getTurnstileToken();
+        } catch {
+            setResult({
+                type: "error",
+                message:
+                    "We couldn't run our quick spam check. Please turn off any content blocker for this page and try again, or contact us by phone or email directly.",
+            });
+            return;
         }
 
-        // submit (server may respond requesting v2)
-        if (recaptchaToken) {
-            await submitPayload(payload, recaptchaToken, "v3");
-        } else {
-            await submitPayload(payload, recaptchaToken);
-        }
+        await submitPayload(payload, turnstileToken);
     }
 
     const requiredDisabled =
@@ -779,21 +602,8 @@ export default function ContactForm({
                 />
             </div>
 
-            {/* reCAPTCHA v2 fallback */}
-            {showV2 && (
-                <div className="rounded-lg border border-orange/20 bg-orange/5 p-4 space-y-3 text-center">
-                    <p className="text-sm font-medium text-charcoal">
-                        We need an extra verification step.
-                    </p>
-                    <p className="text-sm text-charcoal/70">
-                        Please complete the captcha below to continue.
-                    </p>
-
-                    <div className="flex justify-center">
-                        <div id="recaptcha-v2" ref={v2ContainerRef} />
-                    </div>
-                </div>
-            )}
+            {/* Cloudflare Turnstile: shows a checkbox here only if needed */}
+            <div className="flex justify-center" ref={turnstileContainer} />
 
             <ContactFormFooter
                 loading={loading}

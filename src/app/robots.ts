@@ -1,16 +1,23 @@
 import type { MetadataRoute } from "next";
 
-export default function robots(): MetadataRoute.Robots {
-    const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL
-            ? `https://${process.env.NEXT_PUBLIC_BASE_URL}`
-            : "http://localhost:3000";
+import { absoluteUrl, indexingAllowed } from "@/lib/site";
 
+/* Link-preview fetchers for messaging and social apps. They draw link cards
+   from Open Graph tags and do not index, so they may fetch preview builds. */
+const linkPreviewAgents = ["Twitterbot", "facebookexternalhit", "LinkedInBot", "Slackbot", "Discordbot", "WhatsApp", "TelegramBot"];
+
+/** Paths crawlers never need: APIs and private or signed-in pages. */
+const privatePaths: string[] = ["/api/"];
+
+/* Production may be crawled; previews and local builds keep search engines out. */
+export default function robots(): MetadataRoute.Robots {
     return {
-        rules: {
-            userAgent: "*",
-            allow: "/",
-        },
-        sitemap: `${baseUrl}/sitemap.xml`,
+        rules: indexingAllowed()
+            ? { userAgent: "*", allow: "/", disallow: privatePaths }
+            : [
+                  { userAgent: linkPreviewAgents, allow: "/", disallow: privatePaths },
+                  { userAgent: "*", disallow: "/" },
+              ],
+        sitemap: absoluteUrl("/sitemap.xml"),
     };
 }

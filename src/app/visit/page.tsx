@@ -5,17 +5,22 @@ import { getHours } from "@/lib/notion/hours";
 import HoursTable from "@/components/visit/location/HoursTable";
 import ContactForm from "@/components/visit/contact/contactForm/ContactForm";
 import FrameSection from "@/components/common/FrameSection";
+import { openGraphDefaults, site, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/visit" },
     title: "Visit Us",
     description:
         "Hours, location, and contact - check VietBites hours and get in touch.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/visit",
         title: "Visit Us | VietBites Toronto",
         description:
             "Hours, location, and contact - check VietBites hours and get in touch.",
     },
     twitter: {
+        ...twitterDefaults,
         title: "Visit Us | VietBites Toronto",
         description:
             "Hours, location, and contact - check VietBites hours and get in touch.",
@@ -26,8 +31,8 @@ function googleMapsEmbedSrc() {
     return "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2887.074289893019!2d-79.37107992344025!3d43.66202617109976!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89d4cbc0f751d687%3A0x881dfbd1330e66d6!2sVietBites!5e0!3m2!1sen!2sca!4v1731557500000!5m2!1sen!2sca";
 }
 
-const googleMapsUrl = process.env.NEXT_PUBLIC_VIETBITES_GOOGLE_MAPS_URL || "https://www.google.com/maps/place/Vietbites/@43.6620262,-79.3720876,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4cbc0f751d687:0x881dfbd1330e66d6!8m2!3d43.6620262!4d-79.3695127!16s%2Fg%2F11x6gcgm8t?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D";
-const directionsUrl = process.env.NEXT_PUBLIC_VIETBITES_DIRECTIONS_URL || googleMapsUrl;
+const googleMapsUrl = site.googleMapsUrl;
+const directionsUrl = googleMapsUrl;
 
 export default async function VisitPage({ searchParams }: { searchParams?: Record<string, string> | Promise<Record<string, string>> }) {
     const hours = await getHours();

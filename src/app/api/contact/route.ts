@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import type { BrevoEmailPayload } from "@/lib/email/brevo";
 import { sendBrevoEmail } from "@/lib/email/brevo";
+import { requestHostname, verifyTurnstile } from "@/lib/turnstile";
 import {
     buildAdminEmailText,
     buildAdminEmailHtml,
@@ -18,8 +19,7 @@ type ContactPayload = {
     meta?: Record<string, string>;
     company?: string;
     startedAt?: number;
-    recaptchaToken?: string;
-    recaptchaVersion?: "v3" | "v2";
+    turnstileToken?: string;
 };
 
 function isEmail(s: string) {
@@ -86,7 +86,6 @@ import {
     consumeBurst,
     isDuplicate,
     setDuplicate,
-    hasQuotaError,
 } from "@/lib/email/rate-limit";
 
 function getClientIp(req: Request) {
@@ -191,278 +190,25 @@ export async function POST(req: Request) {
             .trim();
         const subjectCapped = subjectRaw.slice(0, SUBJECT_MAX);
 
-        // Server-side reCAPTCHA verification.
-        const recaptchaSecretV3 = process.env.RECAPTCHA_SECRET_KEY;
-        const recaptchaSecretV2 = process.env.RECAPTCHA_V2_SECRET_KEY;
-        const token = String(body.recaptchaToken ?? "");
-        const declaredVersion = body.recaptchaVersion;
-
-        if (recaptchaSecretV3 || recaptchaSecretV2) {
-            if (!token) {
-                return NextResponse.json(
-                    {
-                        ok: false,
-                        error: "Missing captcha token.",
-                        code: "RECAPTCHA_MISSING",
-                    },
-                    { status: 400 },
-                );
-            }
-
-            // helper to verify with a secret
-            async function verifyToken(secret: string, tokenToVerify: string) {
-                const form = new URLSearchParams();
-                form.set("secret", secret);
-                form.set("response", tokenToVerify);
-                form.set("remoteip", ip);
-
-                const r = await fetch(
-                    "https://www.google.com/recaptcha/api/siteverify",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                        },
-                        body: form.toString(),
-                    },
-                );
-
-                return r.json();
-            }
-
-            try {
-                // If client declared a version, enforce that verification strictly
-                if (declaredVersion === "v3") {
-                    if (!recaptchaSecretV3) {
-                        return NextResponse.json(
-                            {
-                                ok: false,
-                                error: "reCAPTCHA v3 not configured on server.",
-                                code: "RECAPTCHA_VERSION_MISMATCH",
-                            },
-                            { status: 400 },
-                        );
-                    }
-                    const jr = await verifyToken(recaptchaSecretV3, token);
-                    const success = Boolean(jr.success);
-                    const score =
-                        typeof jr.score === "number" ? jr.score : undefined;
-                    const action =
-                        typeof jr.action === "string" ? jr.action : undefined;
-                    const errs: string[] = Array.isArray(jr["error-codes"])
-                        ? jr["error-codes"]
-                        : [];
-                    const isQuota = hasQuotaError(errs);
-
-                    if (!success) {
-                        if (isQuota) {
-                            console.warn(
-                                "reCAPTCHA v3 quota exceeded — failing open",
-                                jr,
-                            );
-                            // fail-open for v3 (low-risk contact form)
-                        } else {
-                            console.warn("reCAPTCHA v3 failed", jr);
-                            return NextResponse.json(
-                                {
-                                    ok: false,
-                                    error: "Captcha verification failed.",
-                                    code: "RECAPTCHA_FAIL",
-                                },
-                                { status: 400 },
-                            );
-                        }
-                    }
-                    if (typeof score === "number" && score < 0.4) {
-                        console.warn("reCAPTCHA v3 low score", score, jr);
-                        return NextResponse.json(
-                            {
-                                ok: false,
-                                error: "Captcha verification flagged this request as suspicious.",
-                                code: "RECAPTCHA_LOW_SCORE",
-                            },
-                            { status: 400 },
-                        );
-                    }
-                    if (action && action !== "contact_form") {
-                        console.warn(
-                            "reCAPTCHA v3 action mismatch",
-                            action,
-                            jr,
-                        );
-                        return NextResponse.json(
-                            {
-                                ok: false,
-                                error: "Captcha verification mismatch.",
-                                code: "RECAPTCHA_ACTION",
-                            },
-                            { status: 400 },
-                        );
-                    }
-                } else if (declaredVersion === "v2") {
-                    if (!recaptchaSecretV2) {
-                        return NextResponse.json(
-                            {
-                                ok: false,
-                                error: "reCAPTCHA v2 not configured on server.",
-                                code: "RECAPTCHA_VERSION_MISMATCH",
-                            },
-                            { status: 400 },
-                        );
-                    }
-                    const jr2 = await verifyToken(recaptchaSecretV2, token);
-                    const success2 = Boolean(jr2.success);
-                    const errs2: string[] = Array.isArray(jr2["error-codes"])
-                        ? jr2["error-codes"]
-                        : [];
-                    const isQuota2 = hasQuotaError(errs2);
-                    if (!success2) {
-                        if (isQuota2) {
-                            console.warn("reCAPTCHA v2 quota exceeded", jr2);
-                            return NextResponse.json(
-                                {
-                                    ok: false,
-                                    error: "Captcha quota exceeded. Please try again later.",
-                                    code: "RECAPTCHA_QUOTA_EXCEEDED",
-                                },
-                                { status: 503 },
-                            );
-                        }
-                        console.warn("reCAPTCHA v2 failed", jr2);
-                        return NextResponse.json(
-                            {
-                                ok: false,
-                                error: "Captcha verification failed.",
-                                code: "RECAPTCHA_FAIL",
-                            },
-                            { status: 400 },
-                        );
-                    }
-                } else {
-                    // No declared version from client: keep previous behavior (try v3 then v2)
-                    let verified = false;
-                    if (recaptchaSecretV3) {
-                        const jr = await verifyToken(recaptchaSecretV3, token);
-                        const success = Boolean(jr.success);
-                        const score =
-                            typeof jr.score === "number" ? jr.score : undefined;
-                        const action =
-                            typeof jr.action === "string"
-                                ? jr.action
-                                : undefined;
-                        const errs: string[] = Array.isArray(jr["error-codes"])
-                            ? jr["error-codes"]
-                            : [];
-                        const isQuota = hasQuotaError(errs);
-
-                        if (
-                            success &&
-                            (typeof score !== "number" || score >= 0.4) &&
-                            (!action || action === "contact_form")
-                        ) {
-                            verified = true;
-                        } else {
-                            if (!recaptchaSecretV2) {
-                                if (!success) {
-                                    if (isQuota) {
-                                        console.warn(
-                                            "reCAPTCHA v3 quota exceeded — failing open",
-                                            jr,
-                                        );
-                                        // fail-open for v3
-                                    } else {
-                                        console.warn("reCAPTCHA v3 failed", jr);
-                                        return NextResponse.json(
-                                            {
-                                                ok: false,
-                                                error: "Captcha verification failed.",
-                                                code: "RECAPTCHA_FAIL",
-                                            },
-                                            { status: 400 },
-                                        );
-                                    }
-                                }
-                                if (typeof score === "number" && score < 0.4) {
-                                    console.warn(
-                                        "reCAPTCHA v3 low score",
-                                        score,
-                                        jr,
-                                    );
-                                    return NextResponse.json(
-                                        {
-                                            ok: false,
-                                            error: "Captcha verification flagged this request as suspicious.",
-                                            code: "RECAPTCHA_LOW_SCORE",
-                                        },
-                                        { status: 400 },
-                                    );
-                                }
-                                if (action && action !== "contact_form") {
-                                    console.warn(
-                                        "reCAPTCHA v3 action mismatch",
-                                        action,
-                                        jr,
-                                    );
-                                    return NextResponse.json(
-                                        {
-                                            ok: false,
-                                            error: "Captcha verification mismatch.",
-                                            code: "RECAPTCHA_ACTION",
-                                        },
-                                        { status: 400 },
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    if (!verified && recaptchaSecretV2) {
-                        const jr2 = await verifyToken(recaptchaSecretV2, token);
-                        const success2 = Boolean(jr2.success);
-                        const errs2: string[] = Array.isArray(
-                            jr2["error-codes"],
-                        )
-                            ? jr2["error-codes"]
-                            : [];
-                        const isQuota2 = hasQuotaError(errs2);
-                        if (success2) verified = true;
-                        else {
-                            if (isQuota2) {
-                                console.warn(
-                                    "reCAPTCHA v2 quota exceeded",
-                                    jr2,
-                                );
-                                return NextResponse.json(
-                                    {
-                                        ok: false,
-                                        error: "Captcha quota exceeded. Please try again later.",
-                                        code: "RECAPTCHA_QUOTA_EXCEEDED",
-                                    },
-                                    { status: 503 },
-                                );
-                            }
-                            console.warn("reCAPTCHA v2 failed", jr2);
-                            return NextResponse.json(
-                                {
-                                    ok: false,
-                                    error: "Captcha verification failed.",
-                                    code: "RECAPTCHA_FAIL",
-                                },
-                                { status: 400 },
-                            );
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("reCAPTCHA verification error", err);
-                return NextResponse.json(
-                    {
-                        ok: false,
-                        error: "Captcha verification error.",
-                        code: "RECAPTCHA_ERROR",
-                    },
-                    { status: 500 },
-                );
-            }
+        // Server-side Cloudflare Turnstile verification (required).
+        const captcha = await verifyTurnstile({
+            token: String(body.turnstileToken ?? ""),
+            ip: ip === "unknown" ? undefined : ip,
+            hostname: requestHostname(req),
+        });
+        if (!captcha.ok) {
+            const unavailable = captcha.reason === "unavailable";
+            if (unavailable) console.warn("Turnstile verification unavailable");
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: unavailable
+                        ? "Our spam check is unavailable right now. Please try again shortly."
+                        : "Captcha verification failed. Please try again.",
+                    code: unavailable ? "CAPTCHA_UNAVAILABLE" : "CAPTCHA_FAIL",
+                },
+                { status: unavailable ? 503 : 400 },
+            );
         }
 
         if (!name || !email || !subjectCapped || !message) {
@@ -559,15 +305,15 @@ export async function POST(req: Request) {
         }
 
         const apiKey = process.env.BREVO_API_KEY;
-        const fromEmail = process.env.BREVO_ADMIN_FROM_EMAIL;
-        const fromName = process.env.BREVO_ADMIN_FROM_NAME || "VietBites";
-        const confirmFromEmail = process.env.BREVO_CONFIRM_FROM_EMAIL;
+        const fromEmail = process.env.CONTACT_NOTIFICATION_FROM_EMAIL;
+        const fromName = process.env.CONTACT_NOTIFICATION_FROM_NAME || "VietBites";
+        const confirmFromEmail = process.env.CONTACT_FROM_EMAIL;
         const confirmFromName =
-            process.env.BREVO_CONFIRM_FROM_NAME ||
+            process.env.CONTACT_FROM_NAME ||
             "No Reply | VietBites Toronto";
-        const toEmail = process.env.BREVO_TO_EMAIL;
+        const toEmail = process.env.CONTACT_TO_EMAIL;
         const techCcEmail =
-            process.env.BREVO_TECH_CC_EMAIL || "admin@motchi.ca";
+            process.env.CONTACT_CC_EMAIL || "admin@motchi.ca";
         const techCcName = "VietBites Tech Support";
 
         if (!apiKey || !fromEmail || !toEmail || !confirmFromEmail) {
