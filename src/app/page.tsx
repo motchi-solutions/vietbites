@@ -9,17 +9,22 @@ import Hero from "@/components/homepage/Hero/Hero";
 import Announcements from "@/components/homepage/Announcements";
 import FeaturedMenu from "@/components/homepage/FeaturedMenu/FeaturedMenu";
 import LocationSection from "@/components/common/LocationSection";
+import { openGraphDefaults, twitterDefaults } from "@/lib/site";
 
 export const metadata: Metadata = {
+    alternates: { canonical: "/" },
     title: "VietBites | Vietnamese Cuisine in Toronto",
     description:
         "Visit VietBites in Downtown Toronto for Vietnamese bánh mì, chè sweet soups, drinks, and desserts inspired by Hải Phòng. See our hours, location, and featured menu.",
     openGraph: {
+        ...openGraphDefaults,
+        url: "/",
         title: "VietBites Vietnamese Desserts And Banh Mi In Toronto",
         description:
             "VietBites is a Vietnamese bakery and cafe in Downtown Toronto serving bánh mì, chè sweet soups, specialty drinks, and desserts with roots in Hải Phòng.",
     },
     twitter: {
+        ...twitterDefaults,
         title: "VietBites Vietnamese Desserts And Banh Mi In Toronto",
         description:
             "Discover VietBites in Downtown Toronto for Vietnamese bánh mì, chè sweet soups, drinks, and desserts inspired by Hải Phòng street flavors.",

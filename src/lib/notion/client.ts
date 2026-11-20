@@ -3,15 +3,25 @@ import { Client } from "@notionhq/client";
 export const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 export const DB = {
-    MENU: process.env.NOTION_DB_MENU!,
-    OPENING: process.env.NOTION_DB_OPENING!,
-    ANNOUNCEMENTS: process.env.NOTION_DB_ANNOUNCEMENTS!,
-    PILLARS: process.env.NOTION_DB_PILLARS!,
-    PLATFORMS: process.env.NOTION_DB_PLATFORMS!,
+    MENU: process.env.NOTION_MENU_DATABASE_ID!,
+    OPENING: process.env.NOTION_HOURS_DATABASE_ID!,
+    ANNOUNCEMENTS: process.env.NOTION_ANNOUNCEMENTS_DATABASE_ID!,
+    PILLARS: process.env.NOTION_PILLARS_DATABASE_ID!,
+    PLATFORMS: process.env.NOTION_PLATFORMS_DATABASE_ID!,
 };
 
-for (const [k, v] of Object.entries(DB)) {
-    if (!v) throw new Error(`Missing env for ${k} database id`);
+const missing = Object.entries({
+    NOTION_TOKEN: process.env.NOTION_TOKEN,
+    NOTION_MENU_DATABASE_ID: DB.MENU,
+    NOTION_HOURS_DATABASE_ID: DB.OPENING,
+    NOTION_ANNOUNCEMENTS_DATABASE_ID: DB.ANNOUNCEMENTS,
+    NOTION_PILLARS_DATABASE_ID: DB.PILLARS,
+    NOTION_PLATFORMS_DATABASE_ID: DB.PLATFORMS,
+})
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+if (missing.length) {
+    throw new Error(`Missing environment variables: ${missing.join(", ")}. Set them in Vercel (see .env.example).`);
 }
 
 type DatabaseWithDataSources = {
