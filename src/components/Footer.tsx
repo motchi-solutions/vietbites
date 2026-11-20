@@ -76,9 +76,10 @@ export default async function Footer() {
                 <p className="max-w-3/4 mx-auto">
                     © {new Date().getFullYear()} VietBites. Created by{" "}
                     <a
-                        href="https://motchi.ca"
+                        href="https://www.motchi.ca/websites?utm_source=vietbites&utm_medium=referral&utm_campaign=client-footer"
                         className="underline hover:text-orange ease-in-out duration-300 transition-colors"
                         target="_blank"
+                        rel="noopener"
                     >
                         Motchi Websites
                     </a>

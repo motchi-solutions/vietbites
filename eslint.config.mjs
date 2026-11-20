@@ -7,6 +7,7 @@ const config = [
         ignores: [
             "node_modules/**",
             ".next/**",
+            ".agents/**", // Vendored agent skills, not app code.
             "out/**",
             "build/**",
             "next-env.d.ts",
