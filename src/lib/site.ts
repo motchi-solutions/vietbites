@@ -2,8 +2,8 @@
    "Website standard"). Business facts live here, not in environment variables. */
 export const site = {
     name: "VietBites",
-    /** Production origin. www.vietbites.ca redirects here. */
-    url: "https://vietbites.ca",
+    /** Production origin. vietbites.ca redirects here. */
+    url: "https://www.vietbites.ca",
     description:
         "VietBites is a Vietnamese restaurant and cafe in Downtown Toronto serving bánh mì, chè sweet soups, drinks, and desserts inspired by Vietnamese culture from Hải Phòng.",
     locale: "en_CA",

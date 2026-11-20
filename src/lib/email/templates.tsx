@@ -225,7 +225,7 @@ export function buildConfirmEmailHtml(args: { msgId: string; name: string }) {
                                             <tr>
                                                 <td style="vertical-align:middle;padding-right:10px;">
                                                 <img
-                                                    src="https://vietbites.ca/images/logos/LogoCircle.png"
+                                                    src="https://www.vietbites.ca/images/logos/LogoCircle.png"
                                                     width="36"
                                                     height="36"
                                                     alt="VietBites"
@@ -323,7 +323,7 @@ export function buildConfirmEmailHtml(args: { msgId: string; name: string }) {
                                                     Toronto, Ontario
                                                 </td>
                                                 <td align="right" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:12px;color:#6b7280;line-height:1.6;">
-                                                    <a href="https://vietbites.ca" style="color:#c2410c;text-decoration:underline;">vietbites.ca</a>
+                                                    <a href="https://www.vietbites.ca" style="color:#c2410c;text-decoration:underline;">vietbites.ca</a>
                                                 </td>
                                             </tr>
                                         </table>
